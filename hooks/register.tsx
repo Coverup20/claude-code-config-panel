@@ -2,38 +2,135 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 const PANE = 'config-panel'
-const COMMAND = 'settings-panel'
-// Rows the pane's frame, header, footer and border take up.
-const CHROME_ROWS = 7
+const SETTINGS_COMMAND = 'settings-panel'
+const CONTEXT_COMMAND = 'context-panel'
+// Rows the pane's frame, tab bar, header, footer and border take up.
+const CHROME_ROWS = 9
 
 // Bumped after each change so the drawing reads the new values.
 const tick = atom({ plugin: 'config-panel', key: 'tick' } as const, 0)
 const page = atom({ plugin: 'config-panel', key: 'page' } as const, 0)
+const tab = atom({ plugin: 'config-panel', key: 'tab' } as const, 'settings')
+
+const formatTokens = (n: number) =>
+  n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n)
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: COMMAND,
+      name: SETTINGS_COMMAND,
       description: 'Show the Claude Code settings as toggles in a pane',
+    })
+    await $.command.register({
+      name: CONTEXT_COMMAND,
+      description: 'Show the context window usage, as /context does, in a pane',
     })
 
     return next(e)
   })
 
-  on('command.run', { command: COMMAND }, async $ => {
+  on('command.run', { command: SETTINGS_COMMAND }, async $ => {
+    await update($, tab, () => 'settings')
     await $.ui.open({ id: PANE, title: 'Settings' })
 
     return { text: 'Settings pane opened.' }
   })
 
+  on('command.run', { command: CONTEXT_COMMAND }, async $ => {
+    await update($, tab, () => 'context')
+    await $.ui.open({ id: PANE, title: 'Settings' })
+
+    return { text: 'Context pane opened.' }
+  })
+
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button } = $.ui.resolve(e)
     await read($, tick)
-    const current = await read($, page)
+    const current = await read($, tab)
+
+    const tabBar = (
+      <Box justifyContent="space-between">
+        <Button
+          key="tab-settings"
+          plain
+          onPress={() => update($, tab, () => 'settings')}
+        >
+          <Text bold={current === 'settings'} color={current === 'settings' ? 'claude' : 'inactive'}>
+            Settings
+          </Text>
+        </Button>
+        <Button
+          key="tab-context"
+          plain
+          onPress={() => update($, tab, () => 'context')}
+        >
+          <Text bold={current === 'context'} color={current === 'context' ? 'claude' : 'inactive'}>
+            Context
+          </Text>
+        </Button>
+      </Box>
+    )
+
+    if (current === 'context') {
+      const usage = await $.session.usage({ breakdown: 'full' })
+      const context = usage.context
+      const breakdown = context.breakdown
+      const used = breakdown?.totalTokens ?? context.tokens ?? 0
+      const max = breakdown?.maxTokens ?? context.window
+      const percent = Math.min(100, Math.round(breakdown?.percentage ?? context.percent ?? 0))
+      const categories = breakdown?.categories ?? []
+
+      return (
+        <Box flexDirection="column" borderStyle="round" borderColor="claude" paddingX={1}>
+          {tabBar}
+
+          <Box flexDirection="column" marginTop={1}>
+            <Box justifyContent="space-between">
+              <Text bold>{breakdown?.model ?? 'Context'}</Text>
+              <Text dimColor>
+                {formatTokens(used)} / {formatTokens(max)} ({percent}%)
+              </Text>
+            </Box>
+            <Box marginTop={1} height={1}>
+              <Box width={0} flexGrow={Math.max(percent, 0)} height={1} backgroundColor="success" />
+              <Box width={0} flexGrow={Math.max(100 - percent, 0)} height={1} backgroundColor="inactive" />
+            </Box>
+          </Box>
+
+          <Box flexDirection="column" marginTop={1}>
+            {categories.map(category => {
+              const color =
+                category.kind === 'used'
+                  ? 'success'
+                  : category.kind === 'buffer'
+                    ? 'warning'
+                    : category.kind === 'deferred'
+                      ? 'suggestion'
+                      : 'inactive'
+              return (
+                <Box key={category.name} justifyContent="space-between">
+                  <Text color={color}>
+                    {'● '}
+                    {category.name}
+                  </Text>
+                  <Text dimColor>
+                    {formatTokens(category.tokens)}
+                    {category.isDeferred ? ' (deferred)' : ''}
+                  </Text>
+                </Box>
+              )
+            })}
+            {categories.length === 0 && <Text dimColor>No breakdown available.</Text>}
+          </Box>
+        </Box>
+      )
+    }
+
+    const current_page = await read($, page)
     const rows = await $.config.list()
     const pageSize = Math.max(5, (e.viewport?.rows ?? 24) - CHROME_ROWS)
     const pages = Math.max(1, Math.ceil(rows.length / pageSize))
-    const index = Math.min(current, pages - 1)
+    const index = Math.min(current_page, pages - 1)
     const slice = rows.slice(index * pageSize, (index + 1) * pageSize)
 
     const change = async (key: string, value: string | boolean) => {
@@ -43,7 +140,9 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column" borderStyle="round" borderColor="claude" paddingX={1}>
-        <Box justifyContent="space-between">
+        {tabBar}
+
+        <Box justifyContent="space-between" marginTop={1}>
           <Text bold color="claude">Claude Code settings</Text>
           <Text dimColor>
             {index + 1} / {pages}

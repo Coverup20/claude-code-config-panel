@@ -93,7 +93,17 @@ export const register: Register = on => {
     // The vertical chart takes every row left, one column per sample.
     const chartRows = Math.max(0, (e.props.scroll?.bodyRows ?? 0) - usedRows - 1)
     const chartLevels = Array.from({ length: chartRows }, (_, i) => chartRows - i)
-    const chartSamples = history.slice(-40)
+    // Bars share the width left of the percentage axis, so the plot is never a sliver.
+    const AXIS_WIDTH = 5
+    const plotWidth = Math.max(8, (e.props.bodyColumns ?? 40) - 2 - AXIS_WIDTH)
+    const chartSamples = history.slice(-plotWidth)
+    const barWidth = Math.max(1, Math.min(8, Math.floor(plotWidth / Math.max(1, chartSamples.length))))
+    const axisLabel = (level: number) => {
+      if (level === chartRows) return ' 100%'
+      if (level === 1) return '   0%'
+      if (chartRows > 3 && level === Math.ceil(chartRows / 2)) return '  50%'
+      return '     '
+    }
 
     return (
       <Box flexDirection="column" width="100%" height={e.props.scroll?.bodyRows} flexGrow={1} borderStyle="round" borderColor="claude" paddingX={1}>
@@ -172,18 +182,23 @@ export const register: Register = on => {
             <Text bold>Context over time</Text>
             <Text dimColor>{history.length > 0 ? `${history.length} samples` : 'no samples yet'}</Text>
           </Box>
-          {chartRows > 0 ? (
+          {chartRows > 0 && chartSamples.length > 0 ? (
             <Box flexDirection="column" height={chartRows}>
               {chartLevels.map(level => (
-                <Text key={`level-${level}`} color="claude">
-                  {chartSamples
-                    .map(p => (Math.round((p / 100) * chartRows) >= level ? '█' : ' '))
-                    .join('')}
-                </Text>
+                <Box key={`level-${level}`}>
+                  <Text dimColor>{axisLabel(level)}</Text>
+                  <Text color="claude">
+                    {chartSamples
+                      .map(p =>
+                        ((p / 100) * chartRows >= level - 0.5 ? '█' : ' ').repeat(barWidth),
+                      )
+                      .join('')}
+                  </Text>
+                </Box>
               ))}
             </Box>
           ) : (
-            <Text color="claude">{spark}</Text>
+            <Text color="claude">{spark || 'no samples yet'}</Text>
           )}
           {usage.cost && <Text dimColor>Session cost: ${usage.cost.usd.toFixed(2)}</Text>}
         </Box>

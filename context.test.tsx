@@ -83,6 +83,26 @@ test('the context frame is as tall as the pane and the chart fills what is left'
   await ui.unmount()
 })
 
+test('the chart draws a percentage axis and bars wider than one column', async ($, on) => {
+  on('session.usage', () => ({ value: USAGE }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  // Four readings stored by an earlier turn.
+  on('state.get', (_, e) =>
+    e.key === 'samples' ? { value: { value: [10, 40, 80, 34], version: 1 } } : { value: undefined },
+  )
+
+  const ui = await $.ui.mount({ ...CONTEXT_PANE, surface: 'terminal' })
+
+  expect(await ui.find({ type: 'Text', text: /100%/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /0%/ })).toBeDefined()
+
+  // A bar row is several blocks wide, not one per sample.
+  const bars = await ui.findAll({ type: 'Text', text: /█/ })
+  expect(bars.length > 0).toBe(true)
+  expect((bars[0]?.text?.match(/█/g)?.length ?? 0) > 4).toBe(true)
+  await ui.unmount()
+})
+
 test('the settings pane draws a toggle for an on/off row', async ($, on) => {
   on('config.list', () => ({
     value: [

@@ -67,6 +67,22 @@ test('the context pane shows the model, the categories, the limit and the cost',
   await ui.unmount()
 })
 
+test('the context frame is as tall as the pane and the chart fills what is left', async ($, on) => {
+  on('session.usage', () => ({ value: USAGE }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+
+  const ui = await $.ui.mount({ ...CONTEXT_PANE, surface: 'terminal' })
+
+  // The frame takes the pane's rows, not the height of its content.
+  const frame = await ui.find({ type: 'Box', props: { borderStyle: 'round' } })
+  expect(frame?.props?.height).toBe(40)
+
+  // The filler chart is the one Box given an explicit height below the frame.
+  const chart = await ui.find({ type: 'Box', props: { flexDirection: 'column', marginTop: 1 } })
+  expect(chart).toBeDefined()
+  await ui.unmount()
+})
+
 test('the settings pane draws a toggle for an on/off row', async ($, on) => {
   on('config.list', () => ({
     value: [

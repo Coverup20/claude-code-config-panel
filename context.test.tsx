@@ -109,6 +109,24 @@ test('the chart draws a percentage axis and bars wider than one column', async (
   await ui.unmount()
 })
 
+test('bars stay apart even when the readings outnumber the columns', async ($, on) => {
+  on('session.usage', () => ({ value: USAGE }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  // More readings than the plot has columns: they must be dropped, not squeezed.
+  on('state.get', (_, e) =>
+    e.key === 'samples'
+      ? { value: { value: Array.from({ length: 200 }, (_, i) => 20 + (i % 40)), version: 1 } }
+      : { value: undefined },
+  )
+
+  const ui = await $.ui.mount({ ...CONTEXT_PANE, surface: 'terminal' })
+
+  // A filled bar is always followed by its blank column.
+  const blanks = await ui.findAll({ type: 'Text', text: /^ $/ })
+  expect(blanks.length > 0).toBe(true)
+  await ui.unmount()
+})
+
 test('the settings pane draws a toggle for an on/off row', async ($, on) => {
   on('config.list', () => ({
     value: [

@@ -93,13 +93,19 @@ test('the chart draws a percentage axis and bars wider than one column', async (
 
   const ui = await $.ui.mount({ ...CONTEXT_PANE, surface: 'terminal' })
 
-  expect(await ui.find({ type: 'Text', text: /100%/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /0%/ })).toBeDefined()
+  // The axis zooms on the readings (10..80), so it never reads 100%.
+  expect(await ui.find({ type: 'Text', text: /85%/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /100%/ })).toBe(undefined)
 
   // A bar row is several blocks wide, not one per sample.
   const bars = await ui.findAll({ type: 'Text', text: /█/ })
   expect(bars.length > 0).toBe(true)
   expect((bars[0]?.text?.match(/█/g)?.length ?? 0) > 4).toBe(true)
+
+  // The 80 reading is drawn red, the 10 one green.
+  const colors = bars.map(bar => bar.props?.color)
+  expect(colors.includes('error')).toBe(true)
+  expect(colors.includes('success')).toBe(true)
   await ui.unmount()
 })
 

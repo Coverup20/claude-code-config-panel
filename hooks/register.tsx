@@ -98,12 +98,21 @@ export const register: Register = on => {
     const plotWidth = Math.max(8, (e.props.bodyColumns ?? 40) - 2 - AXIS_WIDTH)
     const chartSamples = history.slice(-plotWidth)
     const barWidth = Math.max(1, Math.min(8, Math.floor(plotWidth / Math.max(1, chartSamples.length))))
+    // The scale zooms on the readings, with a margin, so small moves stay visible.
+    const lowest = chartSamples.length > 0 ? Math.min(...chartSamples) : 0
+    const highest = chartSamples.length > 0 ? Math.max(...chartSamples) : 100
+    const floorPct = Math.max(0, Math.floor((lowest - 5) / 5) * 5)
+    const ceilPct = Math.min(100, Math.max(floorPct + 10, Math.ceil((highest + 5) / 5) * 5))
+    const span = ceilPct - floorPct
     const axisLabel = (level: number) => {
-      if (level === chartRows) return ' 100%'
-      if (level === 1) return '   0%'
-      if (chartRows > 3 && level === Math.ceil(chartRows / 2)) return '  50%'
+      const pct = floorPct + (span * level) / chartRows
+      if (level === chartRows || level === 1 || (chartRows > 3 && level === Math.ceil(chartRows / 2))) {
+        return `${Math.round(pct)}%`.padStart(5)
+      }
       return '     '
     }
+    // Green under half the window, amber under 80%, red above it.
+    const fillColor = (pct: number) => (pct >= 80 ? 'error' : pct >= 50 ? 'warning' : 'success')
 
     return (
       <Box flexDirection="column" width="100%" height={e.props.scroll?.bodyRows} flexGrow={1} borderStyle="round" borderColor="claude" paddingX={1}>
@@ -187,13 +196,11 @@ export const register: Register = on => {
               {chartLevels.map(level => (
                 <Box key={`level-${level}`}>
                   <Text dimColor>{axisLabel(level)}</Text>
-                  <Text color="claude">
-                    {chartSamples
-                      .map(p =>
-                        ((p / 100) * chartRows >= level - 0.5 ? '█' : ' ').repeat(barWidth),
-                      )
-                      .join('')}
-                  </Text>
+                  {chartSamples.map((p, i) => (
+                    <Text key={`bar-${level}-${i}`} color={fillColor(p)}>
+                      {(((p - floorPct) / span) * chartRows >= level - 0.5 ? '█' : ' ').repeat(barWidth)}
+                    </Text>
+                  ))}
                 </Box>
               ))}
             </Box>

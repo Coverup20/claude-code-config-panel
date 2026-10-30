@@ -81,6 +81,15 @@ export const register: Register = on => {
     const limits = usage.rateLimits ?? []
     const history = await read($, samples)
     const spark = history.map(p => SPARKS[Math.min(SPARKS.length - 1, Math.floor(p / 12.5))]).join('')
+    // Rows the content takes (borders, margins included), so a spacer fills the rest.
+    const usedRows =
+      2 + // borders
+      1 + // header
+      1 + gridRows.length + // grid, with its margin
+      2 + // tokens and percent
+      1 + categories.length * 3 + // category label and bars
+      3 + (usage.cost ? 1 : 0) + // context over time, with cost
+      (limits.length > 0 ? 2 + limits.length * 4 : 0) // limits
 
     return (
       <Box flexDirection="column" width="100%" height={e.scroll?.bodyRows} flexGrow={1} borderStyle="round" borderColor="claude" paddingX={1}>

@@ -94,7 +94,8 @@ export const register: Register = on => {
     const chartRows = Math.max(0, (e.props.scroll?.bodyRows ?? 0) - usedRows - 1)
     const chartLevels = Array.from({ length: chartRows }, (_, i) => chartRows - i)
     // Bars share the width left of the percentage axis, so the plot is never a sliver.
-    const AXIS_WIDTH = 5
+    // Five columns for the label and one blank, so the bars never touch it.
+    const AXIS_WIDTH = 6
     const plotWidth = Math.max(8, (e.props.bodyColumns ?? 40) - 2 - AXIS_WIDTH)
     const chartSamples = history.slice(-plotWidth)
     const barWidth = Math.max(1, Math.min(8, Math.floor(plotWidth / Math.max(1, chartSamples.length))))
@@ -107,9 +108,9 @@ export const register: Register = on => {
     const axisLabel = (level: number) => {
       const pct = floorPct + (span * level) / chartRows
       if (level === chartRows || level === 1 || (chartRows > 3 && level === Math.ceil(chartRows / 2))) {
-        return `${Math.round(pct)}%`.padStart(5)
+        return `${`${Math.round(pct)}%`.padStart(5)} `
       }
-      return '     '
+      return '      '
     }
     // Green under half the window, amber under 80%, red above it.
     const fillColor = (pct: number) => (pct >= 80 ? 'error' : pct >= 50 ? 'warning' : 'success')

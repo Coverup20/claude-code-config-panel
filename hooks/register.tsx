@@ -146,12 +146,6 @@ export const register: Register = on => {
           </Box>
         </Box>
 
-        <Box flexDirection="column" marginTop={1}>
-          <Text bold>Context over time</Text>
-          <Text color="claude">{spark || 'no samples yet'}</Text>
-          {usage.cost && <Text dimColor>Session cost: ${usage.cost.usd.toFixed(2)}</Text>}
-        </Box>
-
         {limits.length > 0 && (
           <Box flexDirection="column" marginTop={1}>
             <Text bold>Limits</Text>
@@ -173,17 +167,26 @@ export const register: Register = on => {
             })}
           </Box>
         )}
-        {chartRows > 0 && (
-          <Box flexDirection="column" height={chartRows} marginTop={1}>
-            {chartLevels.map(level => (
-              <Text key={`level-${level}`} color="claude">
-                {chartSamples
-                  .map(p => (Math.round((p / 100) * chartRows) >= level ? '█' : ' '))
-                  .join('')}
-              </Text>
-            ))}
+        <Box flexDirection="column" marginTop={1}>
+          <Box justifyContent="space-between">
+            <Text bold>Context over time</Text>
+            <Text dimColor>{history.length > 0 ? `${history.length} samples` : 'no samples yet'}</Text>
           </Box>
-        )}
+          {chartRows > 0 ? (
+            <Box flexDirection="column" height={chartRows}>
+              {chartLevels.map(level => (
+                <Text key={`level-${level}`} color="claude">
+                  {chartSamples
+                    .map(p => (Math.round((p / 100) * chartRows) >= level ? '█' : ' '))
+                    .join('')}
+                </Text>
+              ))}
+            </Box>
+          ) : (
+            <Text color="claude">{spark}</Text>
+          )}
+          {usage.cost && <Text dimColor>Session cost: ${usage.cost.usd.toFixed(2)}</Text>}
+        </Box>
       </Box>
     )
   })

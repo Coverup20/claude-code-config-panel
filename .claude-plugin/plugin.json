@@ -1,0 +1,13 @@
+{
+  "name": "config-panel",
+  "version": "0.1.0",
+  "description": "A pane with toggles for the Claude Code /config settings",
+  "displayName": "Config Panel",
+  "author": {
+    "name": "Marzio Bordin"
+  },
+  "license": "MIT",
+  "icon": ".claude-plugin/icon.png",
+  "keywords": ["config", "settings", "pane", "mod"],
+  "types": "./types/index.d.ts"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "config-panel",
+  "owner": {
+    "name": "Marzio Bordin"
+  },
+  "metadata": {
+    "description": "A pane with toggles for the Claude Code /config settings"
+  },
+  "plugins": [
+    {
+      "name": "config-panel",
+      "description": "A pane listing the /config settings: toggles for on/off rows, a press to step through choices, read-only rows for the rest",
+      "source": "./"
+    }
+  ]
+}

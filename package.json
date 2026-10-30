@@ -1,0 +1,35 @@
+{
+  "name": "claude-code-config-panel",
+  "version": "0.2.0",
+  "description": "A Claude Code pane with toggles for the /config settings and a context usage view",
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "config",
+    "settings",
+    "pane",
+    "mod"
+  ],
+  "homepage": "https://github.com/Coverup20/claude-code-config-panel#readme",
+  "bugs": {
+    "url": "https://github.com/Coverup20/claude-code-config-panel/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Coverup20/claude-code-config-panel.git"
+  },
+  "license": "MIT",
+  "author": "Marzio Bordin",
+  "type": "module",
+  "files": [
+    ".claude-plugin",
+    "hooks",
+    "types",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "claude plugin test .",
+    "validate": "claude plugin validate . --profile directory"
+  }
+}

@@ -169,6 +169,7 @@ export const register: Register = on => {
             })}
           </Box>
         )}
+        <Box height={Math.max(0, (e.scroll?.bodyRows ?? 0) - usedRows)} />
       </Box>
     )
   })

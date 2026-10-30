@@ -97,10 +97,10 @@ test('the chart draws a percentage axis and bars wider than one column', async (
   expect(await ui.find({ type: 'Text', text: /85%/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /100%/ })).toBe(undefined)
 
-  // A bar row is several blocks wide, not one per sample.
-  const bars = await ui.findAll({ type: 'Text', text: /█/ })
+  // A bar is drawn as a shaded texture, several columns wide.
+  const bars = await ui.findAll({ type: 'Text', text: /[▒▓]/ })
   expect(bars.length > 0).toBe(true)
-  expect((bars[0]?.text?.match(/█/g)?.length ?? 0) > 4).toBe(true)
+  expect((bars[0]?.text?.match(/[▒▓]/g)?.length ?? 0) > 4).toBe(true)
 
   // The 80 reading is drawn red, the 10 one green.
   const colors = bars.map(bar => bar.props?.color)

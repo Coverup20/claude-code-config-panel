@@ -99,6 +99,9 @@ export const register: Register = on => {
     const plotWidth = Math.max(8, (e.props.bodyColumns ?? 40) - 2 - AXIS_WIDTH)
     const chartSamples = history.slice(-plotWidth)
     const barWidth = Math.max(1, Math.min(8, Math.floor(plotWidth / Math.max(1, chartSamples.length))))
+    // One column of each slot is left blank, so neighbouring bars stay apart.
+    const inkWidth = Math.max(1, barWidth - 1)
+    const gapWidth = barWidth - inkWidth
     // The scale zooms on the readings, with a margin, so small moves stay visible.
     const lowest = chartSamples.length > 0 ? Math.min(...chartSamples) : 0
     const highest = chartSamples.length > 0 ? Math.max(...chartSamples) : 100
@@ -198,15 +201,20 @@ export const register: Register = on => {
                 <Box key={`level-${level}`}>
                   <Text dimColor>{axisLabel(level)}</Text>
                   {chartSamples.map((p, i) => {
-                    const isFilled = ((p - floorPct) / span) * chartRows >= level - 0.5
-                    return isFilled ? (
-                      <Text key={`bar-${level}-${i}`} color={fillColor(p)}>
-                        {'█'.repeat(barWidth)}
-                      </Text>
-                    ) : (
-                      <Text key={`bar-${level}-${i}`} dimColor>
-                        {(isAxisRow(level) ? '┄' : ' ').repeat(barWidth)}
-                      </Text>
+                    const height = ((p - floorPct) / span) * chartRows
+                    const isFilled = height >= level - 0.5
+                    // The crest is denser than the body, so the profile reads at a glance.
+                    const shade = height >= level + 0.5 ? '▒' : '▓'
+                    const rule = isAxisRow(level) ? '┄' : ' '
+                    return (
+                      <Box key={`bar-${level}-${i}`}>
+                        {isFilled ? (
+                          <Text color={fillColor(p)}>{shade.repeat(inkWidth)}</Text>
+                        ) : (
+                          <Text dimColor>{rule.repeat(inkWidth)}</Text>
+                        )}
+                        {gapWidth > 0 && <Text dimColor>{rule.repeat(gapWidth)}</Text>}
+                      </Box>
                     )
                   })}
                 </Box>

@@ -83,7 +83,7 @@ export const register: Register = on => {
           <Text dimColor>{breakdown?.model ?? ''}</Text>
         </Box>
 
-        <Box flexDirection="row" marginTop={1}>
+        <Box flexDirection="column" marginTop={1}>
           <Box flexDirection="column" flexShrink={0}>
             {gridRows.map((row, r) => (
               <Box key={`row-${r}`}>
@@ -95,7 +95,7 @@ export const register: Register = on => {
               </Box>
             ))}
           </Box>
-          <Box flexDirection="column" marginLeft={2}>
+          <Box flexDirection="column" marginTop={1}>
             <Text>
               {formatTokens(used)} / {formatTokens(max)} tokens
             </Text>

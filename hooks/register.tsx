@@ -96,10 +96,11 @@ export const register: Register = on => {
     // Bars share the width left of the percentage axis, so the plot is never a sliver.
     // Five columns for the label and one blank, so the bars never touch it.
     const AXIS_WIDTH = 6
-    const plotWidth = Math.max(8, (e.props.bodyColumns ?? 40) - 2 - AXIS_WIDTH)
-    // Every bar keeps one blank column, so a slot is never narrower than two.
-    const chartSamples = history.slice(-Math.max(1, Math.floor(plotWidth / 2)))
-    const slotWidth = Math.max(2, Math.min(9, Math.floor(plotWidth / Math.max(1, chartSamples.length))))
+    // Less the frame's border and padding, so a row never overflows and gets squeezed.
+    const plotWidth = Math.max(9, (e.props.bodyColumns ?? 40) - 4 - AXIS_WIDTH)
+    // A slot is two columns of bar and one blank, so every bar is the same width.
+    const chartSamples = history.slice(-Math.max(1, Math.floor(plotWidth / 3)))
+    const slotWidth = Math.max(3, Math.min(9, Math.floor(plotWidth / Math.max(1, chartSamples.length))))
     const inkWidth = slotWidth - 1
     // The scale zooms on the readings, with a margin, so small moves stay visible.
     const lowest = chartSamples.length > 0 ? Math.min(...chartSamples) : 0
@@ -206,7 +207,7 @@ export const register: Register = on => {
                     const shade = height >= level + 0.5 ? '▒' : '▓'
                     const rule = isAxisRow(level) ? '┄' : ' '
                     return (
-                      <Box key={`bar-${level}-${i}`}>
+                      <Box key={`bar-${level}-${i}`} flexShrink={0}>
                         {isFilled ? (
                           <Text color={fillColor(p)}>{shade.repeat(inkWidth)}</Text>
                         ) : (

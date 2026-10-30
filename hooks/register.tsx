@@ -15,6 +15,29 @@ const page = atom({ plugin: 'config-panel', key: 'page' } as const, 0)
 const formatTokens = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n)
 
+const LIMIT_LABELS: Record<string, string> = {
+  five_hour: '5-hour session',
+  seven_day: 'Weekly (all models)',
+  seven_day_opus: 'Weekly (Opus)',
+  seven_day_sonnet: 'Weekly (Sonnet)',
+}
+
+// "resets in 3h 20m · Fri 14:00", from the reset instant the engine gives.
+const formatReset = (resetsAt: string | undefined) => {
+  if (!resetsAt) return 'reset time unknown'
+  const at = new Date(resetsAt)
+  if (Number.isNaN(at.getTime())) return 'reset time unknown'
+  const minutes = Math.max(0, Math.round((at.getTime() - Date.now()) / 60000))
+  const hours = Math.floor(minutes / 60)
+  const left = hours >= 24 ? `${Math.floor(hours / 24)}d ${hours % 24}h` : `${hours}h ${minutes % 60}m`
+  const when = at.toLocaleString(undefined, {
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  return `resets in ${left} · ${when}`
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -23,7 +46,7 @@ export const register: Register = on => {
     })
     await $.command.register({
       name: CONTEXT_COMMAND,
-      description: 'Show the context window usage, as /context does, in a pane',
+      description: 'Show the context window usage and limits in a pane',
     })
 
     return next(e)
@@ -50,46 +73,69 @@ export const register: Register = on => {
     const max = breakdown?.maxTokens ?? context.window
     const percent = Math.min(100, Math.round(breakdown?.percentage ?? context.percent ?? 0))
     const categories = breakdown?.categories ?? []
+    const gridRows = breakdown?.gridRows ?? []
+    const limits = usage.rateLimits ?? []
 
     return (
       <Box flexDirection="column" borderStyle="round" borderColor="claude" paddingX={1}>
         <Box justifyContent="space-between">
-          <Text bold color="claude">{breakdown?.model ?? 'Context'}</Text>
-          <Text dimColor>
-            {formatTokens(used)} / {formatTokens(max)} ({percent}%)
-          </Text>
+          <Text bold color="claude">Context Usage</Text>
+          <Text dimColor>{breakdown?.model ?? ''}</Text>
         </Box>
 
-        <Box marginTop={1} height={1}>
-          <Box width={0} flexGrow={Math.max(percent, 0)} height={1} backgroundColor="success" />
-          <Box width={0} flexGrow={Math.max(100 - percent, 0)} height={1} backgroundColor="inactive" />
-        </Box>
-
-        <Box flexDirection="column" marginTop={1}>
-          {categories.map(category => {
-            const color =
-              category.kind === 'used'
-                ? 'success'
-                : category.kind === 'buffer'
-                  ? 'warning'
-                  : category.kind === 'deferred'
-                    ? 'suggestion'
-                    : 'inactive'
-            return (
-              <Box key={category.name} justifyContent="space-between">
-                <Text color={color}>
-                  {'● '}
-                  {category.name}
-                </Text>
-                <Text dimColor>
-                  {formatTokens(category.tokens)}
-                  {category.isDeferred ? ' (deferred)' : ''}
+        <Box flexDirection="row" marginTop={1}>
+          <Box flexDirection="column" flexShrink={0}>
+            {gridRows.map((row, r) => (
+              <Box key={`row-${r}`}>
+                {row.map((square, c) => (
+                  <Text key={`sq-${r}-${c}`} color={square.color}>
+                    {square.isFilled ? '⛁ ' : '⛶ '}
+                  </Text>
+                ))}
+              </Box>
+            ))}
+          </Box>
+          <Box flexDirection="column" marginLeft={2}>
+            <Text>
+              {formatTokens(used)} / {formatTokens(max)} tokens
+            </Text>
+            <Text dimColor>{percent}% used</Text>
+            <Box marginTop={1}>
+              <Text dimColor>Estimated usage by category</Text>
+            </Box>
+            {categories.map(category => (
+              <Box key={category.name}>
+                <Text color={category.color}>{'⛁ '}</Text>
+                <Text>
+                  {category.name}: {formatTokens(category.tokens)}
                 </Text>
               </Box>
-            )
-          })}
-          {categories.length === 0 && <Text dimColor>No breakdown available.</Text>}
+            ))}
+            {categories.length === 0 && <Text dimColor>No breakdown available.</Text>}
+          </Box>
         </Box>
+
+        {limits.length > 0 && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text bold>Limits</Text>
+            {limits.map(limit => {
+              const pct = Math.min(100, Math.round(limit.percentUsed))
+              return (
+                <Box key={limit.kind} flexDirection="column" marginTop={1}>
+                  <Box justifyContent="space-between">
+                    <Text>{LIMIT_LABELS[limit.kind] ?? limit.kind}</Text>
+                    <Text dimColor>{pct}% used</Text>
+                  </Box>
+                  <Box height={1}>
+                    <Box width={0} flexGrow={Math.max(pct, 0)} height={1} backgroundColor="success" />
+                    <Box width={0} flexGrow={Math.max(100 - pct, 0)} height={1} backgroundColor="inactive" />
+                  </Box>
+                  <Text dimColor>{formatReset(limit.resetsAt)}</Text>
+                </Box>
+              )
+            })}
+          </Box>
+        )}
       </Box>
     )
   })

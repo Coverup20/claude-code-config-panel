@@ -105,12 +105,12 @@ export const register: Register = on => {
     const floorPct = Math.max(0, Math.floor((lowest - 5) / 5) * 5)
     const ceilPct = Math.min(100, Math.max(floorPct + 10, Math.ceil((highest + 5) / 5) * 5))
     const span = ceilPct - floorPct
+    // The rows that carry a reading: they also rule a line behind the bars.
+    const isAxisRow = (level: number) =>
+      level === chartRows || level === 1 || (chartRows > 3 && level === Math.ceil(chartRows / 2))
     const axisLabel = (level: number) => {
       const pct = floorPct + (span * level) / chartRows
-      if (level === chartRows || level === 1 || (chartRows > 3 && level === Math.ceil(chartRows / 2))) {
-        return `${`${Math.round(pct)}%`.padStart(5)} `
-      }
-      return '      '
+      return isAxisRow(level) ? `${`${Math.round(pct)}%`.padStart(5)} ` : '      '
     }
     // Green under half the window, amber under 80%, red above it.
     const fillColor = (pct: number) => (pct >= 80 ? 'error' : pct >= 50 ? 'warning' : 'success')
@@ -197,11 +197,18 @@ export const register: Register = on => {
               {chartLevels.map(level => (
                 <Box key={`level-${level}`}>
                   <Text dimColor>{axisLabel(level)}</Text>
-                  {chartSamples.map((p, i) => (
-                    <Text key={`bar-${level}-${i}`} color={fillColor(p)}>
-                      {(((p - floorPct) / span) * chartRows >= level - 0.5 ? '█' : ' ').repeat(barWidth)}
-                    </Text>
-                  ))}
+                  {chartSamples.map((p, i) => {
+                    const isFilled = ((p - floorPct) / span) * chartRows >= level - 0.5
+                    return isFilled ? (
+                      <Text key={`bar-${level}-${i}`} color={fillColor(p)}>
+                        {'█'.repeat(barWidth)}
+                      </Text>
+                    ) : (
+                      <Text key={`bar-${level}-${i}`} dimColor>
+                        {(isAxisRow(level) ? '┄' : ' ').repeat(barWidth)}
+                      </Text>
+                    )
+                  })}
                 </Box>
               ))}
             </Box>

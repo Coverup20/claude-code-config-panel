@@ -83,7 +83,7 @@ export const register: Register = on => {
     const spark = history.map(p => SPARKS[Math.min(SPARKS.length - 1, Math.floor(p / 12.5))]).join('')
 
     return (
-      <Box flexDirection="column" width="100%" height="100%" flexGrow={1} borderStyle="round" borderColor="claude" paddingX={1}>
+      <Box flexDirection="column" width="100%" height={e.scroll?.bodyRows} flexGrow={1} borderStyle="round" borderColor="claude" paddingX={1}>
         <Box justifyContent="space-between">
           <Text bold color="claude">Context Usage</Text>
           <Text dimColor>{breakdown?.model ?? ''}</Text>
@@ -189,7 +189,7 @@ export const register: Register = on => {
     }
 
     return (
-      <Box flexDirection="column" width="100%" height="100%" flexGrow={1} borderStyle="round" borderColor="claude" paddingX={1}>
+      <Box flexDirection="column" width="100%" height={e.scroll?.bodyRows} flexGrow={1} borderStyle="round" borderColor="claude" paddingX={1}>
         <Box justifyContent="space-between">
           <Text bold color="claude">Claude Code settings</Text>
           <Text dimColor>

@@ -32,6 +32,8 @@ export const register: Register = on => {
   on('command.run', { command: SETTINGS_COMMAND }, async $ => {
     await update($, tab, () => 'settings')
     await $.ui.open({ id: PANE, title: 'Settings' })
+    // An open pane only retitles on open: ask for a redraw to show the tab.
+    $.ui.invalidate('ui.render')
 
     return { text: 'Settings pane opened.' }
   })
@@ -39,6 +41,7 @@ export const register: Register = on => {
   on('command.run', { command: CONTEXT_COMMAND }, async $ => {
     await update($, tab, () => 'context')
     await $.ui.open({ id: PANE, title: 'Settings' })
+    $.ui.invalidate('ui.render')
 
     return { text: 'Context pane opened.' }
   })

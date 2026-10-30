@@ -11,6 +11,10 @@ const CHROME_ROWS = 7
 // Bumped after each change so the drawing reads the new values.
 const tick = atom({ plugin: 'config-panel', key: 'tick' } as const, 0)
 const page = atom({ plugin: 'config-panel', key: 'page' } as const, 0)
+// Context fill (percent) after each measured change, oldest first.
+const samples = atom({ plugin: 'config-panel', key: 'samples' } as const, [] as number[])
+const SPARKS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+const SAMPLE_LIMIT = 60
 
 const formatTokens = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n)
@@ -75,6 +79,8 @@ export const register: Register = on => {
     const categories = breakdown?.categories ?? []
     const gridRows = breakdown?.gridRows ?? []
     const limits = usage.rateLimits ?? []
+    const history = await read($, samples)
+    const spark = history.map(p => SPARKS[Math.min(SPARKS.length - 1, Math.floor(p / 12.5))]).join('')
 
     return (
       <Box flexDirection="column" borderStyle="round" borderColor="claude" paddingX={1}>
@@ -103,16 +109,34 @@ export const register: Register = on => {
             <Box marginTop={1}>
               <Text dimColor>Estimated usage by category</Text>
             </Box>
-            {categories.map(category => (
-              <Box key={category.name}>
-                <Text color={category.color}>{'⛁ '}</Text>
-                <Text>
-                  {category.name}: {formatTokens(category.tokens)}
-                </Text>
-              </Box>
-            ))}
+            {categories.map(category => {
+              const share = max > 0 ? Math.min(100, (category.tokens / max) * 100) : 0
+              return (
+                <Box key={category.name} flexDirection="column" marginTop={1}>
+                  <Box justifyContent="space-between">
+                    <Text color={category.color}>
+                      {'⛁ '}
+                      {category.name}
+                    </Text>
+                    <Text dimColor>
+                      {formatTokens(category.tokens)} · {share.toFixed(1)}%
+                    </Text>
+                  </Box>
+                  <Box height={1}>
+                    <Box width={0} flexGrow={share} height={1} backgroundColor={category.color} />
+                    <Box width={0} flexGrow={100 - share} height={1} backgroundColor="inactive" />
+                  </Box>
+                </Box>
+              )
+            })}
             {categories.length === 0 && <Text dimColor>No breakdown available.</Text>}
           </Box>
+        </Box>
+
+        <Box flexDirection="column" marginTop={1}>
+          <Text bold>Context over time</Text>
+          <Text color="claude">{spark || 'no samples yet'}</Text>
+          {usage.cost && <Text dimColor>Session cost: ${usage.cost.usd.toFixed(2)}</Text>}
         </Box>
 
         {limits.length > 0 && (
@@ -138,6 +162,15 @@ export const register: Register = on => {
         )}
       </Box>
     )
+  })
+
+  on('session.measure', async ($, e, next) => {
+    const fill = e.context.percent
+    if (e.changed.includes('context') && fill !== undefined) {
+      await update($, samples, list => [...list, Math.round(fill)].slice(-SAMPLE_LIMIT))
+    }
+
+    return next(e)
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {

@@ -90,6 +90,10 @@ export const register: Register = on => {
       1 + categories.length * 3 + // category label and bars
       3 + (usage.cost ? 1 : 0) + // context over time, with cost
       (limits.length > 0 ? 2 + limits.length * 4 : 0) // limits
+    // The vertical chart takes every row left, one column per sample.
+    const chartRows = Math.max(0, (e.scroll?.bodyRows ?? 0) - usedRows - 1)
+    const chartLevels = Array.from({ length: chartRows }, (_, i) => chartRows - i)
+    const chartSamples = history.slice(-40)
 
     return (
       <Box flexDirection="column" width="100%" height={e.scroll?.bodyRows} flexGrow={1} borderStyle="round" borderColor="claude" paddingX={1}>
@@ -169,7 +173,17 @@ export const register: Register = on => {
             })}
           </Box>
         )}
-        <Box height={Math.max(0, (e.scroll?.bodyRows ?? 0) - usedRows)} />
+        {chartRows > 0 && (
+          <Box flexDirection="column" marginTop={1}>
+            {chartLevels.map(level => (
+              <Text key={`level-${level}`} color="claude">
+                {chartSamples
+                  .map(p => (Math.round((p / 100) * chartRows) >= level ? '█' : ' '))
+                  .join('')}
+              </Text>
+            ))}
+          </Box>
+        )}
       </Box>
     )
   })
